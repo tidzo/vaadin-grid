@@ -1,8 +1,6 @@
 package com.vaadin.elements.common.js;
 
 import com.google.gwt.dom.client.Element;
-import com.google.gwt.query.client.GQuery;
-import com.google.gwt.query.client.js.JsUtils;
 import com.google.gwt.regexp.shared.MatchResult;
 import com.google.gwt.regexp.shared.RegExp;
 
@@ -33,19 +31,10 @@ public enum JSValidate {
         this.defaultIfNull = defaultIfNull;
     }
 
-    public <T> T attr(GQuery g, String s) {
-        return attr(g.get(0), s, defaultIfEmpty, defaultIfNull);
-    }
-
-    public <T> T attr(GQuery g, String s, Object defaultIfEmpty,
-            Object defaultIfNull) {
-        return attr(g.get(0), s, defaultIfEmpty, defaultIfNull);
-    }
-
     public <T> T attr(Element el, String s) {
         return val(
-                el != null && JsUtils.hasAttribute(el, s) ? el.getAttribute(s)
-                        : null, defaultIfEmpty, defaultIfNull);
+                el != null && el.hasAttribute(s) ? el.getAttribute(s) : null,
+                defaultIfEmpty, defaultIfNull);
     }
 
     public <T> T attr(Element el, String s, Object defaultIfEmpty,

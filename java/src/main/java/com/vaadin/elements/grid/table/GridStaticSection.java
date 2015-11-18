@@ -9,7 +9,6 @@ import com.google.gwt.core.client.js.JsNamespace;
 import com.google.gwt.core.client.js.JsNoExport;
 import com.google.gwt.core.client.js.JsType;
 import com.google.gwt.dom.client.Element;
-import com.google.gwt.query.client.js.JsUtils;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.vaadin.client.widgets.Grid.StaticSection.StaticCell;
 import com.vaadin.client.widgets.Grid.StaticSection.StaticRow;
@@ -70,7 +69,7 @@ public class GridStaticSection {
             contentCleared(cell, column);
         } else if (JS.isPrimitiveType(content) || content instanceof Number) {
             applyStringContent(cell, String.valueOf(content), column);
-        } else if (JsUtils.isElement(content)) {
+        } else if (content instanceof Element) {
             applyElementContent(cell, (Element) content, column);
         }
     }

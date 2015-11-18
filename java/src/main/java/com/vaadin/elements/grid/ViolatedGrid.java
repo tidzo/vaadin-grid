@@ -5,8 +5,6 @@ import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.dom.client.IFrameElement;
 import com.google.gwt.dom.client.TableSectionElement;
-import com.google.gwt.query.client.GQuery;
-import com.google.gwt.query.client.js.JsUtils;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.ui.RootPanel;
@@ -26,6 +24,7 @@ public class ViolatedGrid extends com.vaadin.client.widgets.Grid<Object> {
 
         if (WidgetUtil.getNativeScrollbarSize() == 0) {
             // "invisible" scrollbars
+            // TODO: Handle these (is still needed)
             if (BrowserInfo.get().isSafari()) {
                 // This hack is needed to fix scrollbars for OS X Safari
                 // [https://github.com/vaadin/vaadin-grid/issues/28]
@@ -34,17 +33,18 @@ public class ViolatedGrid extends com.vaadin.client.widgets.Grid<Object> {
                 // directly so
                 // the wrapper is needed for creating an additional stacking
                 // context.
-                GQuery scrollers = GQuery
-                        .$(".vaadin-grid-scroller", this)
-                        .css("position", "relative")
-                        .wrap("<div style='position: absolute; z-index: 10' />");
-                scrollers.filter(".vaadin-grid-scroller-vertical").parent()
-                        .css("right", "0");
-                scrollers.filter(".vaadin-grid-scroller-horizontal").parent()
-                        .css("bottom", "0");
+                // GQuery scrollers = GQuery
+                // .$(".vaadin-grid-scroller", this)
+                // .css("position", "relative")
+                // .wrap("<div style='position: absolute; z-index: 10' />");
+                // scrollers.filter(".vaadin-grid-scroller-vertical").parent()
+                // .css("right", "0");
+                // scrollers.filter(".vaadin-grid-scroller-horizontal").parent()
+                // .css("bottom", "0");
             } else if (BrowserInfo.get().isChrome()) {
                 // Fix for [https://github.com/vaadin/vaadin-grid/issues/29]
-                GQuery.$(".vaadin-grid-scroller", this).attr("invisible", "");
+                // GQuery.$(".vaadin-grid-scroller", this).attr("invisible",
+                // "");
             }
         }
     }
@@ -127,17 +127,21 @@ public class ViolatedGrid extends com.vaadin.client.widgets.Grid<Object> {
         // on the grid will mitigate the issue.
         focusGridIfSelectAllClicked(event);
 
-        Element targetElement = (Element)event.getEventTarget().cast();
-        if (targetElement != WidgetUtil.getFocusedElement() || isElementOutsideStaticSection(targetElement)) {
+        Element targetElement = (Element) event.getEventTarget().cast();
+        if (targetElement != WidgetUtil.getFocusedElement()
+                || isElementOutsideStaticSection(targetElement)) {
             super.onBrowserEvent(event);
         }
     }
 
     private boolean isElementOutsideStaticSection(Element element) {
-        TableSectionElement headerElement = getEscalator().getHeader().getElement();
-        TableSectionElement footerElement = getEscalator().getFooter().getElement();
+        TableSectionElement headerElement = getEscalator().getHeader()
+                .getElement();
+        TableSectionElement footerElement = getEscalator().getFooter()
+                .getElement();
 
-        return !headerElement.isOrHasChild(element) && !footerElement.isOrHasChild(element);
+        return !headerElement.isOrHasChild(element)
+                && !footerElement.isOrHasChild(element);
     }
 
     private void focusGridIfSelectAllClicked(Event event) {
@@ -147,8 +151,9 @@ public class ViolatedGrid extends com.vaadin.client.widgets.Grid<Object> {
 
             // Currently targeting all gwt-checkboxes, might need refinement in
             // the future.
-            if("label".equals(targetElement.getTagName())
-                    && targetElement.getParentElement().hasClassName("gwt-CheckBox")) {
+            if ("label".equals(targetElement.getTagName())
+                    && targetElement.getParentElement().hasClassName(
+                            "gwt-CheckBox")) {
                 getElement().focus();
             }
         }

@@ -1,8 +1,9 @@
 package com.vaadin.elements.grid.selection;
 
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.query.client.GQuery;
-import com.google.gwt.query.client.js.JsUtils;
+import com.google.gwt.dom.client.Element;
+import com.google.gwt.dom.client.Node;
+import com.google.gwt.dom.client.NodeList;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.vaadin.client.data.DataSource.RowHandle;
 import com.vaadin.client.renderers.Renderer;
@@ -39,8 +40,16 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
                 CheckBox checkBox = super.createWidget();
                 checkBox.setTabIndex(-1);
                 checkBox.addStyleName("vaadin-grid style-scope");
-                GQuery.$(checkBox).children()
-                        .addClass("vaadin-grid", "style-scope");
+                NodeList<Node> childNodes = checkBox.getElement()
+                        .getChildNodes();
+
+                for (int i = 0; i < childNodes.getLength(); i++) {
+                    Node item = childNodes.getItem(i);
+                    if (item instanceof Element) {
+                        ((Element) item).addClassName("vaadin-grid");
+                        ((Element) item).addClassName("style-scope");
+                    }
+                }
                 return checkBox;
             }
 
@@ -134,8 +143,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
                 if (indexes.indexOf((double) index) == -1) {
                     if (selectedIndexCount++ >= fromIndex) {
                         addedSelectedIndexCount++;
-                        Object mappedValue = JsUtils.jsni(mapper, "call",
-                                mapper, index);
+                        Object mappedValue = JS.exec(mapper, index);
                         if (mappedValue != null) {
                             result.add(mappedValue);
                         }
@@ -151,8 +159,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
             toIndex = Math.min(toIndex, indexes.length() - 1);
 
             for (int i = fromIndex; i <= toIndex; i++) {
-                Object mappedValue = JsUtils.jsni(mapper, "call", mapper,
-                        indexes.get(i));
+                Object mappedValue = JS.exec(mapper, indexes.get(i));
                 if (mappedValue != null) {
                     result.add(mappedValue);
                 }
@@ -175,8 +182,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
             toIndex = Math.min(toIndex, indexes.length() - 1);
 
             for (int i = fromIndex; i <= toIndex; i++) {
-                Object mappedValue = JsUtils.jsni(mapper, "call", mapper,
-                        indexes.get(i));
+                Object mappedValue = JS.exec(mapper, indexes.get(i));
                 if (mappedValue != null) {
                     result.add(mappedValue);
                 }

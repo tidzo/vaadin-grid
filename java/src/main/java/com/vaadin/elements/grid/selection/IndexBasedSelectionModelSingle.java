@@ -1,7 +1,6 @@
 package com.vaadin.elements.grid.selection;
 
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.query.client.js.JsUtils;
 import com.vaadin.client.widget.grid.selection.SelectionEvent;
 import com.vaadin.client.widget.grid.selection.SelectionModelSingle;
 import com.vaadin.client.widgets.Grid;
@@ -58,8 +57,7 @@ public class IndexBasedSelectionModelSingle extends
         mapper = SelectionUtil.verifyMapper(mapper);
 
         if (selectedRow != -1) {
-            Object mappedValue = JsUtils.jsni(mapper, "call", mapper,
-                    selectedRow);
+            Object mappedValue = JS.exec(mapper, selectedRow);
             if (mappedValue != null) {
                 result.add(mappedValue);
             }

@@ -6,8 +6,6 @@ import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.JsArrayMixed;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.query.client.Function;
-import com.google.gwt.query.client.js.JsUtils;
 
 /**
  * Class with static utilities for @JsType
@@ -54,35 +52,29 @@ public abstract class JS {
 
     public static void definePropertyAccessors(Object jso, String propertyName,
             Setter setter, Getter getter) {
-        JavaScriptObject setterJSO = setter != null ? JsUtils
-                .wrapFunction(new Function() {
-                    @Override
-                    public void f() {
-                        // Empty Strings are interpreted as null for some reason
-                        // so they need some special attention.
-                        JSONValue jsonValue = new JSONObject(arguments(1))
-                                .get("value");
-                        if (!JS.isUndefinedOrNull(jsonValue)
-                                && jsonValue.isString() != null
-                                && "".equals(jsonValue.isString().stringValue())) {
-                            setter.setValue("");
-                        } else {
-                            // Otherwise handle normally
-                            setter.setValue(arguments(0));
-                        }
-                    }
-                })
+        JavaScriptObject setterJSO = setter != null ? wrapFunction((p0, p1, p2) -> {
+            // Empty Strings are interpreted as null for some reason
+            // so they need some special attention.
+            JSONValue jsonValue = new JSONObject((JavaScriptObject) p1)
+                    .get("value");
+            if (!JS.isUndefinedOrNull(jsonValue)
+                    && jsonValue.isString() != null
+                    && "".equals(jsonValue.isString().stringValue())) {
+                setter.setValue("");
+            } else {
+                // Otherwise handle normally
+                setter.setValue(p0);
+            }
+            return null;
+        })
                 : null;
 
-        JavaScriptObject getterJSO = getter != null ? JsUtils
-                .wrapFunction(new Function() {
-                    @Override
-                    public Object f(Object... args) {
-                        JSArray<Object> array = JS.createArray();
-                        array.push(getter.getValue());
-                        return array;
-                    }
-                }) : null;
+        JavaScriptObject getterJSO = getter != null ? wrapFunction((p0, p1, p2) -> {
+            JSArray<Object> array = JS.createArray();
+            array.push(getter.getValue());
+            return array;
+        })
+                : null;
         definePropertyAccessors((JavaScriptObject) jso, propertyName,
                 setterJSO, getterJSO);
     }
@@ -121,10 +113,14 @@ public abstract class JS {
         Object getValue();
     }
 
-    public static <T> T exec(Object o, Object arg) {
-        return JsUtils.jsni((JavaScriptObject) o, "call", (JavaScriptObject) o,
-                arg);
+    public static <T> T exec(Object o, Object p0) {
+        return exec(o, p0, null);
     }
+
+    public static native <T> T exec(Object o, Object p0, Object p1)
+    /*-{
+      return o(p0, p1);
+    }-*/;
 
     public static native boolean isUndefinedOrNull(Object o)
     /*-{
@@ -144,5 +140,41 @@ public abstract class JS {
     public static native JavaScriptObject getUndefined()
     /*-{
         return undefined;
+    }-*/;
+
+    public static native boolean isArray(JavaScriptObject o)
+    /*-{
+    return Array.isArray(o);
+    }-*/;
+
+    public static native <T> T prop(JavaScriptObject o, String name)
+    /*-{
+    return o[name];
+    }-*/;
+
+    public static native void prop(JavaScriptObject o, String name, Object value)
+    /*-{
+    o[name] = value;
+    }-*/;
+
+    public static native JavaScriptObject wrapFunction(Function f)
+    /*-{
+    return function(p0,p1,p2) {
+        return f.@com.vaadin.elements.common.js.Function::f(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)(p0,p1,p2);
+    }
+    }-*/;
+
+    public static <T> T jsni(JavaScriptObject o, String functionName,
+            Object... params) {
+        Object p0 = params.length > 0 ? params[0] : null;
+        Object p1 = params.length > 1 ? params[1] : null;
+        Object p2 = params.length > 2 ? params[2] : null;
+        return jsni(o, functionName, p0, p1, p2);
+    }
+
+    private static native <T> T jsni(JavaScriptObject o, String functionName,
+            Object p0, Object p1, Object p2)
+    /*-{
+     return o[functionName](p0,p1,p2);
     }-*/;
 }

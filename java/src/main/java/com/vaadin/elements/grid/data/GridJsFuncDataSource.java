@@ -3,8 +3,7 @@ package com.vaadin.elements.grid.data;
 import java.util.List;
 
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.query.client.Function;
-import com.google.gwt.query.client.js.JsUtils;
+import com.vaadin.elements.common.js.Function;
 import com.vaadin.elements.common.js.JS;
 import com.vaadin.elements.grid.GridElement;
 import com.vaadin.elements.grid.config.JSDataRequest;
@@ -19,7 +18,6 @@ public class GridJsFuncDataSource extends GridDataSource {
 
     public GridJsFuncDataSource(JavaScriptObject jso, GridElement grid) {
         super(grid);
-        assert JsUtils.isFunction(jso);
         jsFunction = jso;
         // We need to do a first query to DB in order to get the initial size
         // and then attach the data-source to the grid, otherwise the grid will
@@ -40,18 +38,21 @@ public class GridJsFuncDataSource extends GridDataSource {
         JSDataRequest jsDataRequest = JS.createJsType(JSDataRequest.class);
         jsDataRequest.setIndex(firstRowIndex);
         jsDataRequest.setCount(numberOfRows);
-        jsDataRequest.setSortOrder(JsUtils.prop(gridElement.getContainer(), "sortOrder"));
+        jsDataRequest.setSortOrder(JS.prop(gridElement.getContainer(),
+                "sortOrder"));
 
         gridElement.setLoadingDataClass(true);
-        JsUtils.jsni(jsFunction, "call", jsFunction, jsDataRequest, wrapCallback(callback));
+
+        JS.exec(jsFunction, jsDataRequest, wrapCallback(callback));
     }
 
-    private JavaScriptObject wrapCallback(final RequestRowsCallback<Object> callback) {
-        return JsUtils.wrapFunction(new Function() {
+    private JavaScriptObject wrapCallback(
+            final RequestRowsCallback<Object> callback) {
+        return JS.wrapFunction(new Function() {
             @Override
-            public void f() {
-                List<Object> list = JS.asList(arguments(0));
-                Double totalSize = arguments(1);
+            public Object f(Object p0, Object p1, Object p2) {
+                List<Object> list = JS.asList((JavaScriptObject) p0);
+                Double totalSize = (Double) p1;
 
                 for (int i = 0; i < list.size(); i++) {
                     if (JS.isPrimitiveType(list.get(i))) {
@@ -73,7 +74,9 @@ public class GridJsFuncDataSource extends GridDataSource {
                     initialRowSetReceived = true;
                     gridElement.updateWidth();
                 }
+                return null;
             }
+
         });
     }
 

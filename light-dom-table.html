@@ -1,0 +1,98 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<script>
+
+  /**
+   * @polymerBehavior vaadin.elements.grid.LightDomTable
+   */
+  vaadin.elements.grid.LightDomTable = {
+
+    properties: {
+
+      _mutationObserver: {
+        value: function(){
+          return new MutationObserver(this._lightDomTableChanged.bind(this));
+        }
+      },
+
+      _lightDomTable: {
+        observer: '_lightDomTableChanged'
+      }
+    },
+
+    ready: function() {
+      Polymer.dom(this).observeNodes(function(info) {
+        info.addedNodes.forEach(function(node) {
+          if (node.tagName === "TABLE") {
+            this._lightDomTable = node;
+          }
+        }.bind(this));
+      });
+    },
+
+    _lightDomTableChanged: function() {
+      this._mutationObserver.disconnect();
+
+      this.columns = this._createTableColumns(this._lightDomTable.querySelector("colgroup"));
+      this.items = this._createTableDs(this._lightDomTable.querySelector("tbody"));
+      this._tableInitStaticSection(this.header, this._lightDomTable.querySelector("thead"));
+      this._tableInitStaticSection(this.footer, this._lightDomTable.querySelector("tfoot"));
+
+      var config = { attributes: true, childList: true, characterData: true, subtree: true };
+      this._mutationObserver.observe(this._lightDomTable, config);
+    },
+
+
+    _createTableColumns: function(colgroup) {
+      return Polymer.dom(colgroup).querySelectorAll("col").map(function(col) {
+        return {
+          name: col.getAttribute("name"),
+          width: col.getAttribute("width") ? parseInt(col.getAttribute("width")) : undefined,
+          maxWidth: col.getAttribute("max-width") ? parseInt(col.getAttribute("max-width")) : undefined,
+          minWidth: col.getAttribute("min-width") ? parseInt(col.getAttribute("min-width")) : undefined,
+          sortable: col.hasAttribute("sortable"),
+          sortDirection: col.getAttribute("sort-direction"),
+          renderer: function(cell) {
+            cell.element.innerHTML = "<span style='overflow: hidden;text-overflow: ellipsis;'>"+cell.data+"</span>";
+            if (cell.element.firstElementChild.firstElementChild) {
+              cell.element.innerHTML = cell.data;
+            }
+          }
+        };
+      });
+    },
+
+    _createTableDs: function(tbody) {
+      return Polymer.dom(tbody).querySelectorAll("tr").map(function(tr) {
+        return Polymer.dom(tr).querySelectorAll("td").map(function(td) {
+          return td.innerHTML;
+        });
+      });
+    },
+
+    _tableInitStaticSection: function(section, contextElement) {
+      if (contextElement) {
+        Polymer.dom(contextElement).querySelectorAll("tr").forEach(function(tr, row) {
+          if (section.rowCount < row + 1){
+            section.addRow();
+          }
+
+          var span = 0;
+          Polymer.dom(tr).querySelectorAll("th, td").forEach(function(td, col) {
+            if (span === 0) {
+              var cell = section.getCell(row, col);
+              cell.content = td.innerHTML;
+
+              var colspan = td.getAttribute("colspan");
+              cell.colspan = colspan ? parseInt(colspan) : 1;
+              span += cell.colspan;
+            }
+            span--;
+          }.bind(this));
+        }.bind(this));
+      }
+    },
+
+  };
+
+</script>

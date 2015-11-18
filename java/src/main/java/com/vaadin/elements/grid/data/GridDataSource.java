@@ -4,10 +4,9 @@ import java.util.List;
 
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.js.JsExport;
-import com.google.gwt.core.client.js.JsType;
 import com.google.gwt.core.client.js.JsNamespace;
 import com.google.gwt.core.client.js.JsNoExport;
-import com.google.gwt.query.client.js.JsUtils;
+import com.google.gwt.core.client.js.JsType;
 import com.vaadin.client.data.AbstractRemoteDataSource;
 import com.vaadin.elements.common.js.JS;
 import com.vaadin.elements.common.js.JSValidate;
@@ -87,8 +86,7 @@ public abstract class GridDataSource extends AbstractRemoteDataSource<Object> {
         if (index >= 0 && index < size()) {
             Object row = getRow(index);
             if (row != null) {
-                JsUtils.jsni(callback, "call", callback, JS.getUndefined(),
-                        extractDataItem(row));
+                JS.exec(callback, JS.getUndefined(), extractDataItem(row));
             } else if (onlyCached) {
                 JS.exec(callback,
                         JS.getError("Unable to retrieve row #" + index
@@ -100,8 +98,8 @@ public abstract class GridDataSource extends AbstractRemoteDataSource<Object> {
                             @Override
                             public void onResponse(List<Object> rowData,
                                     int totalSize) {
-                                JsUtils.jsni(callback, "call", callback,
-                                        JS.getUndefined(), rowData.get(0));
+                                JS.exec(callback, JS.getUndefined(),
+                                        rowData.get(0));
                             }
                         });
             }
