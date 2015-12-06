@@ -4,7 +4,13 @@ Copyright (c) 2015 Vaadin Ltd.
 This program is available under Apache License Version 2.0, available at https://vaadin.com/license/
 -->
 
+
+<link rel='import' href='../promise-polyfill/promise-polyfill-lite.html'>
 <link rel='import' href='../polymer/polymer.html'>
+
+<!--Why doesn't this import?-->
+<script src="../array.observe/array-observe.min.js"></script>
+
 <script src="vaadin-grid.min.js"></script>
 <link rel='import' href='light-dom-table.html'>
 
@@ -1246,8 +1252,17 @@ See the [demo](demo/index.html) for use case examples.
      * @type {Array<object>}
      */
     get columns() {
-      return this._grid.getColumns();
+      //TODO: horrible tmp implementation
+      var cols = this._grid.getColumns();
+      this._observer = function(){
+        Array.unobserve(cols, this._observer);
+        this._grid.setColumns(cols);
+        Array.observe(cols, this._observer);
+      }.bind(this);
+      Array.observe(cols, this._observer);
+      return cols;
     },
+
     /**
      * @private
      */
@@ -1263,7 +1278,15 @@ See the [demo](demo/index.html) for use case examples.
      * @return {Promise}
      */
     then: function(callback) {
-      return this._grid.then(callback);
+      //return this._grid.then(callback);
+      return new Promise(function(resolve, reject) {
+        var interval = setInterval(function() {
+          if (!this._grid.isWorkPending()) {
+            resolve();
+            clearInterval(interval);
+          }
+        }.bind(this), 30);
+      }.bind(this)).then(callback);
     },
 
     /**

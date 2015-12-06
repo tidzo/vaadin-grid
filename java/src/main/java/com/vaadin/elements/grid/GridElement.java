@@ -5,10 +5,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import com.google.gwt.core.client.JavaScriptException;
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.core.client.Scheduler;
-import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.core.client.js.JsExport;
 import com.google.gwt.core.client.js.JsNamespace;
 import com.google.gwt.core.client.js.JsNoExport;
@@ -67,6 +65,8 @@ public class GridElement implements SelectionHandler<Object>,
     private final ViolatedGrid grid;
     private int visibleRows = -1;
 
+    @JsNoExport
+    // TODO: Make private
     public boolean updating = true;
     private final GridStaticSection staticSection;
 
@@ -385,13 +385,8 @@ public class GridElement implements SelectionHandler<Object>,
         public void run() {
             if (!resetSizesFromDomCalled && isGridVisible()) {
                 grid.resetSizesFromDom();
-                then(JS.wrapFunction(new Function() {
-                    @Override
-                    public Object f(Object p0, Object p1, Object p2) {
-                        grid.resetSizesFromDom();
-                        return null;
-                    };
-                }));
+                // TODO: Not nice...any alternatives?
+                Scheduler.get().scheduleFinally(() -> grid.resetSizesFromDom());
                 resetSizesFromDomCalled = true;
             }
             updateWidth();
@@ -511,48 +506,6 @@ public class GridElement implements SelectionHandler<Object>,
         return result;
     }
 
-    @JsNoExport
-    public void onReady(final Function f) {
-        Scheduler.get().scheduleFixedPeriod(new RepeatingCommand() {
-            @Override
-            public boolean execute() {
-                if (!isWorkPending()) {
-                    f.f(null, null, null);
-                    return false;
-                }
-                return true;
-            }
-        }, 30);
-    }
-
-    public Object then(JavaScriptObject f) {
-
-        // IE does not have support for native promises.
-        // if (browser.msie
-        // FIXME: static initializers in exported classes cause
-        // unexpected errors
-        // browser.mozilla
-        // && Window.Navigator.getUserAgent().toLowerCase()
-        // .contains("trident") {
-        // JSPromise p = new JSPromise();
-        onReady(new Function() {
-            @Override
-            public Object f(Object p0, Object p1, Object p2) {
-                try {
-                    Object v = JS.exec(f, null);
-                    // p.dfd.resolve(v);
-                } catch (JavaScriptException e) {
-
-                }
-                return null;
-            }
-        });
-        return null;
-        // } else {
-        // return nativePromise(f);
-        // }
-    }
-
     private native JavaScriptObject nativePromise(JavaScriptObject f)
     /*-{
         var _this = this;
@@ -635,7 +588,8 @@ public class GridElement implements SelectionHandler<Object>,
     }
 
     public void setRowDetailsVisible(int rowIndex, Object visible) {
-        then(JS.wrapFunction(new Function() {
+        // TODO: Not nice...any alternatives?
+        JS.jsni(container, "then", JS.wrapFunction(new Function() {
             @Override
             public Object f(Object p0, Object p1, Object p2) {
                 Integer validatedRowIndex = JSValidate.Integer.val(rowIndex,
