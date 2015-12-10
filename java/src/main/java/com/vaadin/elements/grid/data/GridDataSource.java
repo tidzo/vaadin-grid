@@ -46,7 +46,10 @@ public abstract class GridDataSource extends AbstractRemoteDataSource<Object> {
     }
 
     public void refreshItems() {
-        Range range = getCachedRange();
+        doRequest(getCachedRange());
+    }
+
+    protected void doRequest(Range range) {
         requestRows(range.getStart(), range.length(),
                 new RequestRowsCallback<Object>(this, range) {
                 });

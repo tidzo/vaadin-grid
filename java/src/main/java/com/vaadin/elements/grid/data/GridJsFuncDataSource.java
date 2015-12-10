@@ -4,11 +4,14 @@ import java.util.List;
 
 import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.query.client.js.JsUtils;
+import com.vaadin.client.data.CacheStrategy;
 import com.vaadin.elements.common.js.JS;
 import com.vaadin.elements.common.js.JSArray;
 import com.vaadin.elements.common.js.JSFunction2;
+import com.vaadin.elements.common.js.JSValidate;
 import com.vaadin.elements.grid.GridElement;
 import com.vaadin.elements.grid.config.JSDataRequest;
+import com.vaadin.shared.ui.grid.Range;
 
 /**
  * Datasource where requestRows() is delegated to a js native function
@@ -31,6 +34,37 @@ public class GridJsFuncDataSource extends GridDataSource {
                 refreshItems();
             }
         });
+
+        setCacheStrategy(new CacheStrategy.DefaultCacheStrategy() {
+
+            @Override
+            public int getMinimumCacheSize(int pageSize) {
+                return super.getMinimumCacheSize(getFixedPageSize(pageSize));
+            }
+
+            @Override
+            public int getMaximumCacheSize(int pageSize) {
+                return super.getMaximumCacheSize(getFixedPageSize(pageSize));
+            }
+
+            private int getFixedPageSize(int defaultValue) {
+                Integer dps = getDataPageSize();
+                if (dps != null) {
+                    if (getCachedRange().isEmpty()) {
+                        return 0;
+                    } else {
+                        return dps;
+                    }
+                }
+                return defaultValue;
+            }
+
+        });
+    }
+
+    private Integer getDataPageSize() {
+        Object pageSize = JsUtils.prop(gridElement.getContainer(), "pageSize");
+        return JSValidate.Integer.val(pageSize, null, null);
     }
 
     public void setJSFunction(
@@ -45,11 +79,37 @@ public class GridJsFuncDataSource extends GridDataSource {
             final RequestRowsCallback<Object> callback) {
 
         JSDataRequest jsDataRequest = JS.createJsObject();
-        jsDataRequest.setIndex(firstRowIndex);
-        jsDataRequest.setCount(numberOfRows);
         jsDataRequest.setSortOrder(JsUtils.prop(gridElement.getContainer(),
                 "sortOrder"));
 
+        Integer pageSize = getDataPageSize();
+        if (JS.isUndefinedOrNull(pageSize)) {
+            // Not a paged request
+            jsDataRequest.setIndex(firstRowIndex);
+            jsDataRequest.setCount(numberOfRows);
+            requestRows(jsDataRequest, callback);
+        } else {
+            int firstPage = (int) Math.floor(firstRowIndex / pageSize);
+            int lastPage = (int) Math.floor((firstRowIndex + numberOfRows - 1)
+                    / pageSize);
+
+            if (firstPage == lastPage && numberOfRows == pageSize) {
+                // This is a valid 1-page request
+                jsDataRequest.setPage(firstPage);
+                requestRows(jsDataRequest, callback);
+            } else {
+                // Make a new row request with a valid page range and ignore
+                // this one.
+                int page = pageCollidesCachedRange(lastPage, pageSize) ? lastPage
+                        : firstPage;
+                doRequest(Range.withLength(page * pageSize, pageSize));
+            }
+        }
+
+    }
+
+    private void requestRows(JSDataRequest jsDataRequest,
+            RequestRowsCallback<Object> callback) {
         gridElement.setLoadingDataClass(true);
 
         jsFunction.f(jsDataRequest, (array, totalSize) -> {
@@ -74,5 +134,11 @@ public class GridJsFuncDataSource extends GridDataSource {
                 gridElement.updateWidth();
             }
         });
+    }
+
+    private boolean pageCollidesCachedRange(int page, int pageSize) {
+        Range cached = getCachedRange();
+        Range range = Range.withLength(page * pageSize - 1, pageSize + 2);
+        return cached.intersects(range);
     }
 }

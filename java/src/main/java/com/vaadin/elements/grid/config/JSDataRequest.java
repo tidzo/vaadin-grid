@@ -23,6 +23,12 @@ public interface JSDataRequest {
     void setCount(int count);
 
     @JsProperty
+    int getPage();
+
+    @JsProperty
+    void setPage(int page);
+
+    @JsProperty
     JSArray<JSSortOrder> getSortOrder();
 
     @JsProperty
