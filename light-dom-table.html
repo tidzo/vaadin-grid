@@ -33,15 +33,19 @@
     _lightDomTableChanged: function() {
       this._mutationObserver.disconnect();
 
-      var table = this._lightDomTable;
+      var table = this.queryEffectiveChildren('table');
       this.header.defaultRow = 0;
+
+      var tbody = table.querySelector('tbody');
+      this._tableDs = undefined;
+      if (tbody) {
+        this._tableDs = this._createTableDs(tbody);
+        this.items = this._tableDs;
+      }
       this.columns = this._createTableColumns(table.querySelector('colgroup'));
       this.sortOrder = this._getSortOrder();
 
-      var tbody = table.querySelector('tbody');
-      if (tbody) {
-        this.items = this._createTableDs(tbody);
-      }
+
       this._tableInitStaticSection(this.header, table.querySelector('thead'));
       this._tableInitStaticSection(this.footer, table.querySelector('tfoot'));
 
@@ -81,7 +85,7 @@
 
     _createTableColumns: function(colgroup) {
       return Polymer.dom(colgroup).querySelectorAll('col').map(function(col) {
-        return {
+        var column = {
           name: col.getAttribute('name') || undefined,
           hidingToggleText: col.getAttribute('hiding-toggle-text') || undefined,
           width: this._parseIntAttribute(col, 'width'),
@@ -91,19 +95,38 @@
           sortable: col.hasAttribute('sortable'),
           sortDirection: col.getAttribute('sort-direction') || undefined,
           hidable: col.hasAttribute('hidable'),
-          hidden: col.hasAttribute('hidden'),
-          renderer: function(cell) {
-            var content = cell.data;
-            if (content === undefined || content === null) {
-              content = '';
-            }
-            cell.element.innerHTML = '<span style="overflow: hidden;text-overflow: ellipsis;">' + content + '</span>';
-            if (cell.element.firstElementChild.firstElementChild) {
-              cell.element.innerHTML = content;
-            }
-          }
+          hidden: col.hasAttribute('hidden')
         };
+
+        if (this._tableDs) {
+          column.renderer = function(cell) {
+            if (this.items === this._tableDs) {
+              cell.element.innerHTML = "";
+              cell.element.appendChild(cell.data);
+            } else {
+              // The datasource might be changed so we need to provide default renderer also
+              this._defaultRenderer(cell);
+            }
+          }.bind(this);
+        }
+        return column;
       }, this);
+    },
+
+    _defaultRenderer: function(cell) {
+      var element = cell.element;
+      var content = (cell.data === undefined || cell.data === null) ? "" : cell.data;
+      var wrapper = element.firstElementChild;
+      if (!wrapper || !wrapper.iswrapper) {
+          // Need to create a new wrapper
+          wrapper = document.createElement('span');
+          wrapper.style.overflow = 'hidden';
+          wrapper.style.textOverflow = 'ellipsis';
+          wrapper.iswrapper = true;
+          element.innerHTML = "";
+          element.appendChild(wrapper);
+      }
+      wrapper.textContent = content;
     },
 
     _parseIntAttribute: function(element, attribute, valueOnEmpty, valueOnUndefined) {
@@ -113,9 +136,9 @@
     _createTableDs: function(tbody) {
       return Polymer.dom(tbody).querySelectorAll('tr').map(function(tr) {
         return Polymer.dom(tr).querySelectorAll('td').map(function(td) {
-          return td.innerHTML;
-        });
-      });
+          return this._extractCellContent(td);
+        }, this);
+      }, this);
     },
 
     _tableInitStaticSection: function(section, contextElement) {
@@ -145,7 +168,7 @@
       cells.forEach(function(td, col) {
         var cell = section.getCell(row, col + span);
         cell.className = td.getAttribute('class');
-        cell.content = td.innerHTML;
+        cell.content = this._extractCellContent(td);
 
         // FIXME: Need to enforce the cell content (to make it show visually).
         // Some internal async problem.
@@ -159,6 +182,22 @@
         cell.colspan = colspan ? parseInt(colspan) : 1;
         span += cell.colspan - 1;
       }, this);
+    },
+
+    _extractCellContent: function(cell) {
+      var wrapper = document.createElement('span');
+      var nodes = cell.childNodes;
+      if (!cell.firstElementChild) {
+        wrapper.style.overflow = 'hidden';
+        wrapper.style.textOverflow = 'ellipsis';
+      } else if (nodes.length === 1) {
+        return nodes[0];
+      }
+
+      for (var i = 0; i < nodes.length; i++) {
+        Polymer.dom(wrapper).appendChild(nodes[i--]);
+      }
+      return wrapper;
     }
 
   };
