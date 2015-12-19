@@ -256,7 +256,7 @@
           grid = fixture('focusable');
 
           waitUntil(function() {
-            return grid.sortOrder && grid.sortOrder[0].direction === 'asc';
+            return grid.$$('.vaadin-grid thead input');
           }, done, done);
         });
 

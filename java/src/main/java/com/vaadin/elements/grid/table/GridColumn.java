@@ -10,7 +10,6 @@ import com.google.gwt.dom.client.Style.Overflow;
 import com.google.gwt.dom.client.Style.TextOverflow;
 import com.google.gwt.query.client.js.JsUtils;
 import com.google.gwt.user.client.DOM;
-import com.google.gwt.user.client.ui.HTML;
 import com.vaadin.client.widgets.Grid.Column;
 import com.vaadin.elements.common.js.JS;
 import com.vaadin.elements.common.js.JSArray;
@@ -18,7 +17,6 @@ import com.vaadin.elements.grid.GridElement;
 import com.vaadin.elements.grid.config.JSColumn;
 import com.vaadin.elements.grid.config.JSStaticCell;
 import com.vaadin.elements.grid.data.GridDataSource;
-import com.vaadin.elements.grid.data.GridDomTableDataSource;
 
 public final class GridColumn extends Column<Object, Object> {
 
@@ -28,8 +26,9 @@ public final class GridColumn extends Column<Object, Object> {
     /**
      * Create a new GridColumn associated with a JSColumn configuration.
      *
-     * @param cfg it accepts either a JSO or a JSColumn, the object is
-     *   promoted to a JSColumn to add customised setters/getters.
+     * @param cfg
+     *            it accepts either a JSO or a JSColumn, the object is promoted
+     *            to a JSColumn to add customised setters/getters.
      */
     public static GridColumn createColumn(Object cfg, GridElement gridElement) {
         JSColumn jsColumn = JSColumn.promote(cfg);
@@ -49,22 +48,17 @@ public final class GridColumn extends Column<Object, Object> {
             Element element = cell.getElement();
             String content = JS.isUndefinedOrNull(data) ? "" : data.toString();
 
-            if (gridElement.getDataSource() instanceof GridDomTableDataSource
-                    && new HTML(content).getElement().getFirstChildElement() != null) {
-                element.setInnerHTML(content);
-            } else {
-                Element wrapper = element.getFirstChildElement();
-                if (wrapper == null || !wrapper.getPropertyBoolean("iswrapper")) {
-                    // Need to create a new wrapper
-                    wrapper = DOM.createSpan();
-                    wrapper.getStyle().setOverflow(Overflow.HIDDEN);
-                    wrapper.getStyle().setTextOverflow(TextOverflow.ELLIPSIS);
-                    wrapper.setPropertyBoolean("iswrapper", true);
-                    element.removeAllChildren();
-                    element.appendChild(wrapper);
-                }
-                wrapper.setInnerText(content);
+            Element wrapper = element.getFirstChildElement();
+            if (wrapper == null || !wrapper.getPropertyBoolean("iswrapper")) {
+                // Need to create a new wrapper
+                wrapper = DOM.createSpan();
+                wrapper.getStyle().setOverflow(Overflow.HIDDEN);
+                wrapper.getStyle().setTextOverflow(TextOverflow.ELLIPSIS);
+                wrapper.setPropertyBoolean("iswrapper", true);
+                element.removeAllChildren();
+                element.appendChild(wrapper);
             }
+            wrapper.setInnerText(content);
         });
     }
 

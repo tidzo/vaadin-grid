@@ -6,6 +6,7 @@ This program is available under Apache License Version 2.0, available at https:/
 
 <link rel='import' href='../polymer/polymer.html'>
 <script src="vaadin-grid.min.js"></script>
+<link rel='import' href='light-dom-table.html'>
 
 <style>
   vaadin-grid > table {
@@ -712,6 +713,10 @@ See the [demo](demo/index.html) for use case examples.
 
     is: 'vaadin-grid',
 
+    behaviors: [
+      vaadin.elements.grid.LightDomTable,
+    ],
+
     _grid: undefined,
 
     properties: {
@@ -1011,18 +1016,7 @@ See the [demo](demo/index.html) for use case examples.
           this.attributeChanged(this.attributes[i].nodeName, null, this.attributes[i].nodeValue);
         }
       });
-      this._grid.init(this, this._findTableElement(Polymer.dom(this).children), Polymer.dom(this.root), this.$.measureobject);
-    },
-
-    _findTableElement: function(nodes) {
-      for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].nodeName === 'TABLE') {
-          return nodes[i];
-        } else if (nodes[i].nodeName === 'CONTENT') {
-          var contentNodes = Polymer.dom(nodes[i]).getDistributedNodes();
-          return this._findTableElement(contentNodes);
-        }
-      }
+      this._grid.init(this, Polymer.dom(this.root), this.$.measureobject);
     },
 
     _bindResizeListener: function() {

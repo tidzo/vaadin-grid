@@ -77,9 +77,8 @@
             // Need to include thead element in the light dom for declarative tests
             var colGroup = qLight('colgroup');
             if (colGroup) {
-              colGroup.parentElement.removeChild(colGroup);
               qLight('table').innerHTML =
-                '<thead><tr><th>Name</th><th>Value</th></tr></thead>' +
+                colGroup.innerHTML + '<thead><tr><th>Name</th><th>Value</th></tr></thead>' +
                 qLight('table').innerHTML;
             }
           }

@@ -19,7 +19,6 @@ import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.NativeEvent;
 import com.google.gwt.dom.client.Style.Unit;
-import com.google.gwt.dom.client.TableElement;
 import com.google.gwt.query.client.js.JsUtils;
 import com.google.gwt.query.client.plugins.observe.Observe;
 import com.google.gwt.query.client.plugins.observe.Observe.Changes.ChangeRecord;
@@ -53,8 +52,6 @@ import com.vaadin.elements.grid.config.JSDataRequest;
 import com.vaadin.elements.grid.config.JSRow;
 import com.vaadin.elements.grid.config.JSSortOrder;
 import com.vaadin.elements.grid.data.GridDataSource;
-import com.vaadin.elements.grid.data.GridDomTableDataSource;
-import com.vaadin.elements.grid.data.GridJsFuncDataSource;
 import com.vaadin.elements.grid.selection.IndexBasedSelectionMode;
 import com.vaadin.elements.grid.selection.IndexBasedSelectionModel;
 import com.vaadin.elements.grid.selection.IndexBasedSelectionModelMulti;
@@ -62,7 +59,6 @@ import com.vaadin.elements.grid.selection.IndexBasedSelectionModelSingle;
 import com.vaadin.elements.grid.selection.MultiSelectModeChangedEvent;
 import com.vaadin.elements.grid.selection.MultiSelectModeChangedHandler;
 import com.vaadin.elements.grid.table.GridColumn;
-import com.vaadin.elements.grid.table.GridLightDomTable;
 import com.vaadin.elements.grid.table.GridStaticSection;
 import com.vaadin.shared.data.sort.SortDirection;
 import com.vaadin.shared.ui.grid.ScrollDestination;
@@ -79,7 +75,6 @@ public class GridElement implements SelectionHandler<Object>,
     private int visibleRows = -1;
 
     public boolean updating = true;
-    private GridLightDomTable lightDom;
     private final GridStaticSection staticSection;
 
     private Element container;
@@ -106,6 +101,7 @@ public class GridElement implements SelectionHandler<Object>,
 
         setColumns(JS.createArray());
         staticSection = new GridStaticSection(this);
+        grid.setDataSource(new GridDataSource(this));
 
         grid.setStylePrimaryName("vaadin-grid style-scope vaadin-grid");
     }
@@ -139,8 +135,8 @@ public class GridElement implements SelectionHandler<Object>,
         return grid;
     }
 
-    public void getItem(Double rowIndex, JSFunction2<JavaScriptObject, Object> callback,
-            boolean onlyCached) {
+    public void getItem(Double rowIndex,
+            JSFunction2<JavaScriptObject, Object> callback, boolean onlyCached) {
         getDataSource().getItem(rowIndex, callback, onlyCached);
     }
 
@@ -148,21 +144,11 @@ public class GridElement implements SelectionHandler<Object>,
         return container;
     }
 
-    public void init(Element container, TableElement lightDomElement,
-            Element gridContainer, Element measureObject) {
+    public void init(Element container, Element gridContainer,
+            Element measureObject) {
         if (this.container == null) {
             this.container = container;
             this.measureObject = measureObject;
-
-            if (lightDomElement != null) {
-                lightDom = new GridLightDomTable(lightDomElement, this);
-                // Check if we have the data in the DOM
-                GridDomTableDataSource ds = GridDomTableDataSource
-                        .createInstance(lightDomElement, this);
-                if (ds != null) {
-                    grid.setDataSource(ds);
-                }
-            }
 
             gridContainer.appendChild(grid.getElement());
             WidgetsUtils.attachWidget(grid, null);
@@ -270,11 +256,7 @@ public class GridElement implements SelectionHandler<Object>,
 
     public void setDataSource(
             JSFunction2<JSDataRequest, JSFunction2<JSArray<?>, Double>> jsFunction) {
-        if (getDataSource() instanceof GridJsFuncDataSource) {
-            ((GridJsFuncDataSource) getDataSource()).setJSFunction(jsFunction);
-        } else {
-            grid.setDataSource(new GridJsFuncDataSource(jsFunction, this));
-        }
+        getDataSource().setJSFunction(jsFunction);
         updateHeight();
     }
 
@@ -296,7 +278,8 @@ public class GridElement implements SelectionHandler<Object>,
         for (Object object : columns.asList()) {
             if (!currentColumns.contains(object)) {
                 // We handle either JS objects or JSColumns, if column is an
-                // Object, it's promoted to a JSColumn so as it has the appropriate
+                // Object, it's promoted to a JSColumn so as it has the
+                // appropriate
                 // prototype for handling set/get properties.
                 GridColumn.createColumn(object, this);
             }
@@ -632,10 +615,10 @@ public class GridElement implements SelectionHandler<Object>,
 
     public void setRowDetailsVisible(int rowIndex, Object visible) {
         then(o -> {
-            Integer validatedRowIndex = JSValidate.Integer.val(rowIndex,
-                    null, null);
-            Boolean validatedVisible = JSValidate.Boolean.val(visible,
-                    true, true);
+            Integer validatedRowIndex = JSValidate.Integer.val(rowIndex, null,
+                    null);
+            Boolean validatedVisible = JSValidate.Boolean.val(visible, true,
+                    true);
             if (!DetailsGenerator.NULL.equals(grid.getDetailsGenerator())
                     && validatedRowIndex != null) {
                 grid.setDetailsVisible(validatedRowIndex, validatedVisible);

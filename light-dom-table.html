@@ -1,0 +1,165 @@
+<script>
+  /**
+   * @polymerBehavior vaadin.elements.grid.LightDomTable
+   */
+  vaadin = window.vaadin || {};
+  vaadin.elements = window.vaadin.elements || {};
+  vaadin.elements.grid = window.vaadin.elements.grid || {};
+  vaadin.elements.grid.LightDomTable = {
+
+    properties: {
+
+      _mutationObserver: {
+        value: function() {
+          return new MutationObserver(this._lightDomTableChanged.bind(this));
+        }
+      },
+
+      _lightDomTable: {
+        observer: '_lightDomTableChanged'
+      }
+    },
+
+    ready: function() {
+      Polymer.dom(this).observeNodes(function(info) {
+        info.addedNodes.forEach(function(node) {
+          if (node.tagName === 'TABLE') {
+            this._lightDomTable = node;
+          }
+        }.bind(this));
+      });
+    },
+
+    _lightDomTableChanged: function() {
+      this._mutationObserver.disconnect();
+
+      var table = this._lightDomTable;
+      this.header.defaultRow = 0;
+      this.columns = this._createTableColumns(table.querySelector('colgroup'));
+      this.sortOrder = this._getSortOrder();
+
+      var tbody = table.querySelector('tbody');
+      if (tbody) {
+        this.items = this._createTableDs(tbody);
+      }
+      this._tableInitStaticSection(this.header, table.querySelector('thead'));
+      this._tableInitStaticSection(this.footer, table.querySelector('tfoot'));
+
+      var defaultRow = this._getHeaderDefaultRow();
+      if (defaultRow !== 0) {
+        this.header.defaultRow = defaultRow;
+      }
+
+      var config = {
+        attributes: true,
+        childList: true,
+        characterData: true,
+        subtree: true
+      };
+      this._mutationObserver.observe(this._lightDomTable, config);
+    },
+
+    _getHeaderDefaultRow: function(thead) {
+      var rows = Polymer.dom(thead).querySelectorAll('tr');
+      return rows.reduce(function(prev, row, index) {
+        return row.childElementCount > rows[prev].childElementCount || row.hasAttribute('sortable') ? index : prev;
+      }, 0);
+    },
+
+    _getSortOrder: function() {
+      return this.columns.reduce(function(prev, col, index) {
+        if (col.sortDirection) {
+          prev.push({
+            column: index,
+            direction: col.sortDirection
+          });
+          delete col.sortDirection;
+        }
+        return prev;
+      }, []) || undefined;
+    },
+
+    _createTableColumns: function(colgroup) {
+      return Polymer.dom(colgroup).querySelectorAll('col').map(function(col) {
+        return {
+          name: col.getAttribute('name') || undefined,
+          hidingToggleText: col.getAttribute('hiding-toggle-text') || undefined,
+          width: this._parseIntAttribute(col, 'width'),
+          maxWidth: this._parseIntAttribute(col, 'max-width'),
+          minWidth: this._parseIntAttribute(col, 'min-width'),
+          flex: this._parseIntAttribute(col, 'flex', 1, -1),
+          sortable: col.hasAttribute('sortable'),
+          sortDirection: col.getAttribute('sort-direction') || undefined,
+          hidable: col.hasAttribute('hidable'),
+          hidden: col.hasAttribute('hidden'),
+          renderer: function(cell) {
+            var content = cell.data;
+            if (content === undefined || content === null) {
+              content = '';
+            }
+            cell.element.innerHTML = '<span style="overflow: hidden;text-overflow: ellipsis;">' + content + '</span>';
+            if (cell.element.firstElementChild.firstElementChild) {
+              cell.element.innerHTML = content;
+            }
+          }
+        };
+      }, this);
+    },
+
+    _parseIntAttribute: function(element, attribute, valueOnEmpty, valueOnUndefined) {
+      return element.hasAttribute(attribute) ? parseInt(element.getAttribute(attribute)) || valueOnEmpty : valueOnUndefined;
+    },
+
+    _createTableDs: function(tbody) {
+      return Polymer.dom(tbody).querySelectorAll('tr').map(function(tr) {
+        return Polymer.dom(tr).querySelectorAll('td').map(function(td) {
+          return td.innerHTML;
+        });
+      });
+    },
+
+    _tableInitStaticSection: function(section, contextElement) {
+      while (section.rowCount > section === this.header ? 1 : 0) {
+        section.removeRow();
+      }
+      if (contextElement) {
+        section.hidden = contextElement.hasAttribute('hidden');
+        this._tableInitStaticSectionRows(section, Polymer.dom(contextElement).querySelectorAll('tr'));
+      }
+    },
+
+    _tableInitStaticSectionRows: function(section, rows) {
+      rows.forEach(function(tr, row) {
+        if (section.rowCount < row + 1) {
+          section.addRow();
+        }
+        section.setRowClassName(row, tr.getAttribute('class'));
+
+        var cells = Polymer.dom(tr).querySelectorAll('th, td');
+        this._tableInitStaticSectionRowCells(section, cells, row);
+      }, this);
+    },
+
+    _tableInitStaticSectionRowCells: function(section, cells, row) {
+      var span = 0;
+      cells.forEach(function(td, col) {
+        var cell = section.getCell(row, col + span);
+        cell.className = td.getAttribute('class');
+        cell.content = td.innerHTML;
+
+        // FIXME: Need to enforce the cell content (to make it show visually).
+        // Some internal async problem.
+        this.async(function() {
+          this.then(function() {
+            cell.content = cell.content;
+          });
+        }, 1);
+
+        var colspan = td.getAttribute('colspan');
+        cell.colspan = colspan ? parseInt(colspan) : 1;
+        span += cell.colspan - 1;
+      }, this);
+    }
+
+  };
+</script>
