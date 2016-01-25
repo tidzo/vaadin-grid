@@ -17,6 +17,7 @@ import com.google.gwt.core.client.Scheduler;
 import com.google.gwt.core.client.Scheduler.RepeatingCommand;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
+import com.google.gwt.dom.client.EventTarget;
 import com.google.gwt.dom.client.NativeEvent;
 import com.google.gwt.dom.client.Style.Unit;
 import com.google.gwt.dom.client.TableElement;
@@ -25,12 +26,20 @@ import com.google.gwt.query.client.plugins.observe.Observe;
 import com.google.gwt.query.client.plugins.observe.Observe.Changes.ChangeRecord;
 import com.google.gwt.query.client.plugins.observe.Observe.ObserveListener;
 import com.google.gwt.query.client.plugins.widgets.WidgetsUtils;
+import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.SimplePanel;
+import com.google.gwt.user.client.ui.TextBox;
+import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.client.widget.grid.DataAvailableEvent;
 import com.vaadin.client.widget.grid.DetailsGenerator;
+import com.vaadin.client.widget.grid.EditorHandler;
 import com.vaadin.client.widget.grid.events.SelectAllEvent;
 import com.vaadin.client.widget.grid.events.SelectAllHandler;
 import com.vaadin.client.widget.grid.selection.SelectionEvent;
@@ -95,6 +104,8 @@ public class GridElement implements SelectionHandler<Object>,
 
     private static final String SELECTION_MODE_CHANGED_EVENT = "selection-mode-changed";
 
+    private Column<?, ?> editedColumn;
+
     public GridElement() {
         grid = new ViolatedGrid();
         grid.setSelectionModel(new IndexBasedSelectionModelSingle());
@@ -108,7 +119,113 @@ public class GridElement implements SelectionHandler<Object>,
         staticSection = new GridStaticSection(this);
 
         grid.setStylePrimaryName("vaadin-grid style-scope vaadin-grid");
+
+        editorProto();
     }
+
+    // The following will not reside here in the actual implementation
+    private void editorProto() {
+        grid.addBodyClickHandler(event -> editedColumn = event.getTargetCell()
+                .getColumn());
+
+        grid.setEditorHandler(new EditorHandler<Object>() {
+            @Override
+            public void bind(
+                    com.vaadin.client.widget.grid.EditorHandler.EditorRequest<Object> request) {
+                request.success();
+            }
+
+            @Override
+            public void cancel(
+                    com.vaadin.client.widget.grid.EditorHandler.EditorRequest<Object> request) {
+                request.success();
+            }
+
+            @Override
+            public void save(
+                    com.vaadin.client.widget.grid.EditorHandler.EditorRequest<Object> request) {
+                request.success();
+            }
+
+            @Override
+            public Widget getWidget(Column<?, Object> column) {
+                if (column == editedColumn) {
+                    return cellEditor;
+                } else {
+                    return new Label();
+                }
+            }
+
+        });
+
+        // Trying out how the editor could be closed automatically.
+        Event.addNativePreviewHandler(event -> {
+            EventTarget eventTarget = event.getNativeEvent().getEventTarget();
+            if (grid.isEditorActive()
+                    && event.getNativeEvent().getType() == "click"
+                    && !cellEditor.getElement().isOrHasChild(
+                            Element.as(eventTarget))) {
+                grid.cancelEditor();
+            }
+        });
+
+        grid.setEditorEnabled(true);
+        // grid.setEditorBuffered(false);
+    }
+
+    // The following will not reside here in the actual implementation
+    private final Widget cellEditor = new VerticalPanel() {
+        @Override
+        protected void onAttach() {
+            super.onAttach();
+
+            clear();
+
+            addStyleName("cell-editor vaadin-grid style-scope");
+
+            // Populate with a provided editor element
+            TextBox textBox = new TextBox();
+            textBox.setWidth("300px");
+            add(textBox);
+
+            HorizontalPanel footer = new HorizontalPanel();
+
+            Button ok = new Button("Ok");
+            ok.addClickHandler(event -> grid.saveEditor());
+            footer.add(ok);
+
+            Button cancel = new Button("Cancel");
+            cancel.addClickHandler(event -> grid.cancelEditor());
+            footer.add(cancel);
+
+            add(footer);
+
+            // The following is quite horrible now but we need
+            // calculation similar to this in order to avoid editor overflowing
+            Scheduler.get().scheduleFinally(
+                    () -> {
+                        Element cellEditorElement = getElement();
+                        Element wrapperElement = cellEditorElement
+                                .getParentElement();
+                        Element cellsElement = wrapperElement
+                                .getParentElement();
+
+                        int combined = wrapperElement.getOffsetLeft()
+                                + cellEditorElement.getClientWidth();
+
+                        if (combined > cellsElement.getClientWidth()) {
+                            cellEditorElement.getStyle().setMarginLeft(
+                                    cellsElement.getClientWidth() - combined,
+                                    Unit.PX);
+                        } else {
+                            cellEditorElement.getStyle().setMarginLeft(0,
+                                    Unit.PX);
+                        }
+
+                    });
+
+        };
+    };
 
     public Element getGridElement() {
         return grid.getElement();
@@ -139,8 +256,8 @@ public class GridElement implements SelectionHandler<Object>,
         return grid;
     }
 
-    public void getItem(Double rowIndex, JSFunction2<JavaScriptObject, Object> callback,
-            boolean onlyCached) {
+    public void getItem(Double rowIndex,
+            JSFunction2<JavaScriptObject, Object> callback, boolean onlyCached) {
         getDataSource().getItem(rowIndex, callback, onlyCached);
     }
 
@@ -296,7 +413,8 @@ public class GridElement implements SelectionHandler<Object>,
         for (Object object : columns.asList()) {
             if (!currentColumns.contains(object)) {
                 // We handle either JS objects or JSColumns, if column is an
-                // Object, it's promoted to a JSColumn so as it has the appropriate
+                // Object, it's promoted to a JSColumn so as it has the
+                // appropriate
                 // prototype for handling set/get properties.
                 GridColumn.createColumn(object, this);
             }
@@ -632,10 +750,10 @@ public class GridElement implements SelectionHandler<Object>,
 
     public void setRowDetailsVisible(int rowIndex, Object visible) {
         then(o -> {
-            Integer validatedRowIndex = JSValidate.Integer.val(rowIndex,
-                    null, null);
-            Boolean validatedVisible = JSValidate.Boolean.val(visible,
-                    true, true);
+            Integer validatedRowIndex = JSValidate.Integer.val(rowIndex, null,
+                    null);
+            Boolean validatedVisible = JSValidate.Boolean.val(visible, true,
+                    true);
             if (!DetailsGenerator.NULL.equals(grid.getDetailsGenerator())
                     && validatedRowIndex != null) {
                 grid.setDetailsVisible(validatedRowIndex, validatedVisible);
