@@ -17,13 +17,13 @@ public class IndexBasedSelectionModelDisabled extends
     }
 
     @Override
-    public JSArray<Object> selected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> selected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         return JS.createArray();
     }
 
     @Override
-    public JSArray<Object> deselected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> deselected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         return JS.createArray();
     }

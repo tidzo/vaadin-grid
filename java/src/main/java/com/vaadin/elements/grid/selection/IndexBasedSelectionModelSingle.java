@@ -51,11 +51,12 @@ public class IndexBasedSelectionModelSingle extends
     }
 
     @Override
-    public JSArray<Object> selected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> selected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         JSArray<Object> result = JS.createArray();
         if (selectedRow != -1) {
-            Object mappedValue = mapper == null ? selectedRow : mapper.f(selectedRow);
+            Object mappedValue = mapper == null ? selectedRow : mapper
+                    .f((double) selectedRow);
             if (mappedValue != null) {
                 result.add(mappedValue);
             }
@@ -65,7 +66,7 @@ public class IndexBasedSelectionModelSingle extends
     }
 
     @Override
-    public JSArray<Object> deselected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> deselected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         return JS.createArray();
     }

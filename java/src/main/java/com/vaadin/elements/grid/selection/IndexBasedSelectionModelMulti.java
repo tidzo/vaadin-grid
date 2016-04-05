@@ -107,7 +107,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
     }
 
     @Override
-    public JSArray<Object> selected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> selected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         return invertedSelection ?
         //
@@ -116,7 +116,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
     }
 
     @Override
-    public JSArray<Object> deselected(JSFunction<Object, Integer> mapper,
+    public JSArray<Object> deselected(JSFunction<Object, Double> mapper,
             Integer from, Integer to) {
         return invertedSelection ?
         //
@@ -125,7 +125,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
     }
 
     private JSArray<Object> fillSelectionArray(
-            JSFunction<Object, Integer> mapper, Integer from, Integer to) {
+            JSFunction<Object, Double> mapper, Integer from, Integer to) {
         JSArray<Object> result = JS.createArray();
 
         int fromIndex = JSValidate.Integer.val(from, 0, 0);
@@ -137,7 +137,7 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
         for (int i = fromIndex; i <= toIndex; i++) {
             Double value = indexes.get(i);
             if (value != null) {
-                Object mappedValue = mapper == null ? value : mapper.f(value.intValue());
+                Object mappedValue = mapper == null ? value : mapper.f(value);
                 if (mappedValue != null) {
                     result.add(mappedValue);
                 }
@@ -146,8 +146,8 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
         return result;
     }
 
-    private JSArray<Object> fillSelectionArrayInverted(JSFunction<Object, Integer> mapper,
-            Integer from, Integer to) {
+    private JSArray<Object> fillSelectionArrayInverted(
+            JSFunction<Object, Double> mapper, Integer from, Integer to) {
 
         JSArray<Object> result = JS.createArray();
 
@@ -168,7 +168,8 @@ public class IndexBasedSelectionModelMulti extends SelectionModelMulti<Object>
             if (indexes.indexOf((double) index) == -1) {
                 if (selectedIndexCount++ >= fromIndex) {
                     addedSelectedIndexCount++;
-                    Object mappedValue = mapper == null ? index : mapper.f(index);
+                    Object mappedValue = mapper == null ? index : mapper
+                            .f((double) index);
                     if (mappedValue != null) {
                         result.add(mappedValue);
                     }
