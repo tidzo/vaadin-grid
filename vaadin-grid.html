@@ -285,8 +285,10 @@ See the [demo](demo/index.html) for use case examples.
   }
 
   .vaadin-grid-row-has-data td {
-    border-bottom: 1px solid #e3e3e3;
+    border-bottom: var(--matt-border-bottom,1px solid #e3e3e3);
     opacity: 1;
+    background-color: var(--matt-row-background-color,green);
+    color: var(--matt-row-color, black);
   }
 
   .vaadin-grid-spacer td {
@@ -300,11 +302,11 @@ See the [demo](demo/index.html) for use case examples.
   }
 
   tbody:not(.touch):not(.scrolling) .vaadin-grid-row:hover td {
-    background-color: #eeeeee;
+    background-color: var(--matt-row-hover-background-color,#eeeeee);
   }
 
   .vaadin-grid-row-selected td {
-    background-color: #f5f5f5;
+    background-color: var(--matt-row-selected-background-color,#f5f5f5);
     @apply(--vaadin-grid-selected-row-cell);
   }
 
@@ -387,6 +389,8 @@ See the [demo](demo/index.html) for use case examples.
   .vaadin-grid-header th {
     font-weight: 500;
     text-align: left;
+    background-color: var(--matt-header-background-color);
+    color: var(--matt-header-color);
   }
 
   .vaadin-grid-header-deco {
